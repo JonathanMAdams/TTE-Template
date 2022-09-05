@@ -1,6 +1,8 @@
-# Install and load the survival package
+# Install and load the survival and reshape2 packages
 install.packages(survival)
+install.packages(reshape2)
 library(survival)
+library(reshape2)
 
 # Load data in CSV format.
 # Ensure that data with CSV includes variable names in the CSV header.
@@ -38,3 +40,25 @@ ggsurvplot(km, risk.table = TRUE, surv.median.line = 'hv', pval = TRUE)
 # Add more covariates if desired.
 
 wb <- survreg(Surv(your_time, your_censor) ~ x1 + x2 + x3)
+coef(wb)
+
+# Visualizing your Weibull Model
+# In order to create visualizations, you should set criteria for personas (i.e., prototypical participants).
+# x1 supplies syntax for a categorical covariate.
+# x2 supplies syntax for a continuous covariate and visualizes at the 25th, 50th, and 75th percentiles.
+
+vis_dat <- expand.grid(
+  x1 = levels(your_data$x1),
+  x2 = quantile(your_data$x2, probs = c(0.25, 0.50, 0.75)))
+
+# Now we must compute time for each probability and bind time to visdat.
+# In the final line, replace all items in the list, denoted by c, with your covariates of interest. Retain the quotation marks. 
+
+surv <- seq(.99, .01, by = -.01)
+time <- predict(wb, type = 'quantile', p = 1 - surv, newdata = data.frame(1))
+surv_vis_dat_w <- cbind(vis_dat, time)
+surv_vis_dat <- melt(surv_vis_dat_w, id.vars = c('x1', 'x2', 'x3'), variable.name = 'id', value.name = 'time')
+
+# Create your plot.
+ggsurvplot_df(surv_vis_dat, surv.geom = geom_line,
+              linetype = 'x1', color = 'x2', legend.title = NULL)
